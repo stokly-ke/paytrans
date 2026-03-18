@@ -8,9 +8,36 @@ const app = express();
 app.use(cors());
 
 // ----------------------------
+// Env checks
+// ----------------------------
+const PORT = process.env.PORT || 10000;
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const APP_BASE_URL = process.env.APP_BASE_URL;
+const PAYSTACK_CALLBACK_URL =
+  process.env.PAYSTACK_CALLBACK_URL || `${APP_BASE_URL}/paystack/callback`;
+
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
+const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
+
+if (!PAYSTACK_SECRET_KEY) {
+  throw new Error("Missing PAYSTACK_SECRET_KEY");
+}
+if (!APP_BASE_URL) {
+  throw new Error("Missing APP_BASE_URL");
+}
+if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
+  throw new Error("Missing Firebase admin environment variables");
+}
+
+// ----------------------------
 // Firebase Admin
 // ----------------------------
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+const serviceAccount = {
+  projectId: FIREBASE_PROJECT_ID,
+  clientEmail: FIREBASE_CLIENT_EMAIL,
+  privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+};
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
