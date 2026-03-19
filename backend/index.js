@@ -59,18 +59,18 @@ const PLAN_CATALOG = {
     }
   },
   TEST_20: {
-  code: "TEST_20",
-  name: "Test Plan",
-  amountKsh: 20,
-  cycle: "trial",
-  durationDays: 7,
-  features: {
-    maxUsers: 1,
-    canUploadImages: false,
-    canUseMultiCurrency: false,
-    canExportReports: false
-  }
-},
+    code: "TEST_20",
+    name: "Test Plan",
+    amountKsh: 20,
+    cycle: "trial",
+    durationDays: 7,
+    features: {
+      maxUsers: 1,
+      canUploadImages: false,
+      canUseMultiCurrency: false,
+      canExportReports: false
+    }
+  },
   STARTER_300: {
     code: "STARTER_300",
     name: "Starter",
@@ -156,7 +156,7 @@ async function writeActiveSubscription({
   const businessRef = db.collection("businesses").doc(businessId);
   const paymentRef = businessRef
     .collection("payments")
-    .document(reference || `trial_${now}`);
+    .doc(reference || `trial_${now}`);
 
   await businessRef.set(
     {
@@ -423,28 +423,69 @@ app.get("/paystack/callback", async (req, res) => {
 
   let title = "Payment received";
   let message = "You can now return to the Stokly app.";
+  let accent = "#16a34a";
+  let pill = "Success";
 
   if (reference) {
     try {
       await activateFromReference(reference);
-      message = "Your subscription has been activated. Return to the Stokly app and tap Confirm Payment.";
+      message =
+        "Your subscription has been activated successfully. Return to the Stokly app and tap Confirm Payment.";
     } catch (error) {
       console.error("Callback activation error:", error.message);
       title = "Payment processing";
-      message = "We received your payment, but activation is still processing. Return to the Stokly app and tap Confirm Payment again in a few seconds.";
+      pill = "Processing";
+      accent = "#d97706";
+      message =
+        "We received your payment, but activation is still processing. Return to the Stokly app and tap Confirm Payment again in a few seconds.";
     }
   }
 
   res.send(`
-    <html>
+    <!DOCTYPE html>
+    <html lang="en">
       <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Stokly Payment</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body style="font-family: Arial, sans-serif; padding: 24px;">
-        <h2>${title}</h2>
-        <p>${message}</p>
-        <p>Reference: ${reference}</p>
+      <body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#0f1117;">
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+          <div style="width:100%;max-width:460px;border-radius:28px;overflow:hidden;background:#171a22;box-shadow:0 20px 60px rgba(0,0,0,0.35);">
+            <div style="padding:32px;background:linear-gradient(135deg,#ff8a3d 0%,#ff6b6b 55%,#ff4fa3 100%);">
+              <div style="display:inline-block;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,0.18);color:#ffffff;font-size:13px;font-weight:700;letter-spacing:0.3px;">
+                ${pill}
+              </div>
+              <h1 style="margin:18px 0 10px 0;font-size:30px;line-height:1.15;color:#ffffff;">
+                ${title}
+              </h1>
+              <p style="margin:0;color:rgba(255,255,255,0.86);font-size:15px;line-height:1.6;">
+                ${message}
+              </p>
+            </div>
+
+            <div style="padding:24px;background:#171a22;">
+              <div style="border-radius:20px;padding:18px;background:#10131a;border:1px solid rgba(255,255,255,0.06);">
+                <div style="font-size:12px;color:#9aa4b2;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">
+                  Payment Reference
+                </div>
+                <div style="font-size:15px;font-weight:700;color:#ffffff;word-break:break-word;">
+                  ${reference || "Not available"}
+                </div>
+              </div>
+
+              <div style="margin-top:18px;border-radius:18px;padding:16px;background:rgba(255,255,255,0.04);">
+                <div style="font-size:14px;color:#d6d9df;line-height:1.7;">
+                  You can now go back to <strong style="color:#ffffff;">Stokly</strong> and continue with your setup.
+                </div>
+              </div>
+
+              <div style="margin-top:20px;text-align:center;color:${accent};font-size:13px;font-weight:700;">
+                Stokly Subscription Gateway
+              </div>
+            </div>
+          </div>
+        </div>
       </body>
     </html>
   `);
