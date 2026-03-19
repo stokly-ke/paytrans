@@ -419,16 +419,32 @@ app.post("/subscriptions/initialize", async (req, res) => {
 });
 
 app.get("/paystack/callback", async (req, res) => {
-  const reference = req.query.reference || "";
-  const trxref = req.query.trxref || "";
+  const reference = String(req.query.reference || req.query.trxref || "");
+
+  let title = "Payment received";
+  let message = "You can now return to the Stokly app.";
+
+  if (reference) {
+    try {
+      await activateFromReference(reference);
+      message = "Your subscription has been activated. Return to the Stokly app and tap Confirm Payment.";
+    } catch (error) {
+      console.error("Callback activation error:", error.message);
+      title = "Payment processing";
+      message = "We received your payment, but activation is still processing. Return to the Stokly app and tap Confirm Payment again in a few seconds.";
+    }
+  }
 
   res.send(`
     <html>
-      <head><title>Stokly Payment</title></head>
-      <body style="font-family: Arial; padding: 24px;">
-        <h2>Payment received</h2>
-        <p>You can now return to the Stokly app.</p>
-        <p>Reference: ${reference || trxref}</p>
+      <head>
+        <title>Stokly Payment</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body style="font-family: Arial, sans-serif; padding: 24px;">
+        <h2>${title}</h2>
+        <p>${message}</p>
+        <p>Reference: ${reference}</p>
       </body>
     </html>
   `);
