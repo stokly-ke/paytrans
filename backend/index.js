@@ -140,7 +140,7 @@ async function writeActiveSubscription({
   const now = Date.now();
   const expiresAt = computeExpiry(plan).getTime();
 
-  const businessRef = db.collection("businesses").document(businessId);
+  const businessRef = db.collection("businesses").doc(businessId);
   const paymentRef = businessRef
     .collection("payments")
     .document(reference || `trial_${now}`);
@@ -182,7 +182,7 @@ async function writeActiveSubscription({
 }
 
 async function writePendingSubscription({ businessId, plan, reference, email }) {
-  const businessRef = db.collection("businesses").document(businessId);
+  const businessRef = db.collection("businesses").doc(businessId);
 
   await businessRef.set(
     {
