@@ -58,6 +58,19 @@ const PLAN_CATALOG = {
       canExportReports: false
     }
   },
+  TEST_20: {
+  code: "TEST_20",
+  name: "Test Plan",
+  amountKsh: 20,
+  cycle: "trial",
+  durationDays: 7,
+  features: {
+    maxUsers: 1,
+    canUploadImages: false,
+    canUseMultiCurrency: false,
+    canExportReports: false
+  }
+},
   STARTER_300: {
     code: "STARTER_300",
     name: "Starter",
