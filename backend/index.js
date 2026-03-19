@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 
 // ----------------------------
-// Env checks
+// Env
 // ----------------------------
 const PORT = process.env.PORT || 10000;
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -20,12 +20,8 @@ const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
 const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 
-if (!PAYSTACK_SECRET_KEY) {
-  throw new Error("Missing PAYSTACK_SECRET_KEY");
-}
-if (!APP_BASE_URL) {
-  throw new Error("Missing APP_BASE_URL");
-}
+if (!PAYSTACK_SECRET_KEY) throw new Error("Missing PAYSTACK_SECRET_KEY");
+if (!APP_BASE_URL) throw new Error("Missing APP_BASE_URL");
 if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
   throw new Error("Missing Firebase admin environment variables");
 }
@@ -46,14 +42,8 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // ----------------------------
-// Config
+// Plans
 // ----------------------------
-const PORT = process.env.PORT || 10000;
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const APP_BASE_URL = process.env.APP_BASE_URL;
-const PAYSTACK_CALLBACK_URL =
-  process.env.PAYSTACK_CALLBACK_URL || `${APP_BASE_URL}/paystack/callback`;
-
 const PLAN_CATALOG = {
   FREE_TRIAL: {
     code: "FREE_TRIAL",
@@ -124,7 +114,6 @@ function computeExpiry(plan) {
 }
 
 function paystackAmount(plan) {
-  // Paystack expects amount in the lower denomination/subunit of the currency.
   return plan.amountKsh * 100;
 }
 
@@ -137,7 +126,6 @@ async function verifyPaystackTransaction(reference) {
       }
     }
   );
-
   return response.data?.data;
 }
 
@@ -153,7 +141,9 @@ async function writeActiveSubscription({
   const expiresAt = computeExpiry(plan).getTime();
 
   const businessRef = db.collection("businesses").document(businessId);
-  const paymentRef = businessRef.collection("payments").document(reference || `trial_${now}`);
+  const paymentRef = businessRef
+    .collection("payments")
+    .document(reference || `trial_${now}`);
 
   await businessRef.set(
     {
@@ -165,9 +155,9 @@ async function writeActiveSubscription({
         amountPaid: amountPaidSubunit / 100,
         currency: "KES",
         startedAt: now,
-        expiresAt: expiresAt,
+        expiresAt,
         paystackReference: reference || "",
-        source: source,
+        source,
         features: plan.features,
         updatedAt: now
       }
@@ -181,9 +171,9 @@ async function writeActiveSubscription({
       planCode: plan.code,
       planName: plan.name,
       email: email || "",
-      amountPaidSubunit: amountPaidSubunit,
+      amountPaidSubunit,
       currency: "KES",
-      source: source,
+      source,
       status: "success",
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     },
@@ -191,12 +181,7 @@ async function writeActiveSubscription({
   );
 }
 
-async function writePendingSubscription({
-  businessId,
-  plan,
-  reference,
-  email
-}) {
+async function writePendingSubscription({ businessId, plan, reference, email }) {
   const businessRef = db.collection("businesses").document(businessId);
 
   await businessRef.set(
@@ -267,15 +252,11 @@ async function activateFromReference(reference) {
     source: "paystack"
   });
 
-  return {
-    businessId,
-    planCode,
-    reference
-  };
+  return { businessId, planCode, reference };
 }
 
 // ----------------------------
-// Webhook must use raw body
+// Webhook raw body
 // ----------------------------
 app.post("/paystack/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   try {
@@ -308,18 +289,31 @@ app.post("/paystack/webhook", express.raw({ type: "application/json" }), async (
 app.use(express.json());
 
 // ----------------------------
-// Health
+// Routes
 // ----------------------------
+app.get("/", (_, res) => {
+  res.json({
+    ok: true,
+    service: "stokly-paytrans",
+    routes: [
+      "GET /health",
+      "POST /subscriptions/trial",
+      "POST /subscriptions/initialize",
+      "GET /subscriptions/status/:businessId",
+      "GET /paystack/callback",
+      "POST /paystack/webhook"
+    ]
+  });
+});
+
 app.get("/health", (_, res) => {
   res.json({ ok: true, service: "stokly-paytrans" });
 });
 
-// ----------------------------
-// Start free trial
-// ----------------------------
 app.post("/subscriptions/trial", async (req, res) => {
   try {
     const { businessId, email } = req.body;
+
     if (!businessId) {
       return res.status(400).json({ message: "businessId is required" });
     }
@@ -346,9 +340,6 @@ app.post("/subscriptions/trial", async (req, res) => {
   }
 });
 
-// ----------------------------
-// Initialize paid plan
-// ----------------------------
 app.post("/subscriptions/initialize", async (req, res) => {
   try {
     const { businessId, email, planCode } = req.body;
@@ -414,9 +405,6 @@ app.post("/subscriptions/initialize", async (req, res) => {
   }
 });
 
-// ----------------------------
-// Callback
-// ----------------------------
 app.get("/paystack/callback", async (req, res) => {
   const reference = req.query.reference || "";
   const trxref = req.query.trxref || "";
@@ -433,9 +421,6 @@ app.get("/paystack/callback", async (req, res) => {
   `);
 });
 
-// ----------------------------
-// Subscription status
-// ----------------------------
 app.get("/subscriptions/status/:businessId", async (req, res) => {
   try {
     const { businessId } = req.params;
